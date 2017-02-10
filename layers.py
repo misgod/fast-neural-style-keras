@@ -6,6 +6,7 @@ from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import Deconvolution2D, Convolution2D,UpSampling2D
 from VGG16 import vgg16
+from keras.applications.vgg16 import preprocess_input
 import numpy as np
 import tensorflow as tf
 
@@ -91,7 +92,12 @@ class VGGNormalize(Layer):
         pass
 
     def call(self, x, mask=None):
-        return vgg16.preprocess_input(x)
+        # No exact substitute for set_subtensor in tensorflow
+        # So we subtract an approximate value
+        # x = preprocess_input(x)
+        x -= 120
+       
+        return x
    
 
     def get_output_shape_for(self, input_shape):
@@ -101,11 +107,9 @@ class VGGNormalize(Layer):
 
 
 class ReflectionPadding2D(Layer):
-    def __init__(self,
-                 padding=(1, 1),
-                 dim_ordering='default',
-                 **kwargs):
+    def __init__(self, padding=(1, 1), dim_ordering='default', **kwargs):
         super(ReflectionPadding2D, self).__init__(**kwargs)
+        
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 

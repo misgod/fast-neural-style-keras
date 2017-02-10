@@ -17,7 +17,7 @@ from keras.utils.data_utils import get_file
 from keras import backend as K
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input, _obtain_input_shape
 
-
+import h5py
 
 
 
@@ -157,7 +157,19 @@ def vgg16(include_top=True, weights='imagenet',
                 weights_path = get_file('vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
                                         TF_WEIGHTS_PATH_NO_TOP,
                                         cache_subdir='models')
-            model.load_weights(weights_path)
+            #model.load_weights(weights_path)
+            
+            f = h5py.File(weights_path)
+
+            layer_names = [name for name in f.attrs['layer_names']]
+
+            for i, layer in enumerate(model.layers[-18:]):
+                g = f[layer_names[i]]
+                weights = [g[name] for name in g.attrs['weight_names']]
+                layer.set_weights(weights)
+            print('VGG Model weights loaded.')    
+
+            
             if K.backend() == 'theano':
                 convert_all_kernels_in_model(model)
     return model
