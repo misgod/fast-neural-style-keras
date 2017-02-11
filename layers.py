@@ -4,7 +4,7 @@ from keras.layers import merge
 from keras.engine import InputSpec
 from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
-from keras.layers.convolutional import Deconvolution2D, Convolution2D,UpSampling2D
+from keras.layers.convolutional import Deconvolution2D, Convolution2D,UpSampling2D,Cropping2D
 from VGG16 import vgg16
 from keras.applications.vgg16 import preprocess_input
 import numpy as np
@@ -25,21 +25,16 @@ def conv_bn_relu(nb_filter, nb_row, nb_col,stride):
 
 #https://keunwoochoi.wordpress.com/2016/03/09/residual-networks-implementation-on-keras/
 def res_conv(nb_filter, nb_row, nb_col,stride=(1,1)):   
-    def _shortcut(input):
-        shortcut = Convolution2D(nb_filter=128, nb_row=3, nb_col=3, subsample=(1, 1), border_mode='valid')(input)
-        shortcut = Convolution2D(nb_filter=128, nb_row=3, nb_col=3, subsample=(1, 1), border_mode='valid')(shortcut)
-        return shortcut   
-    
     def _res_func(x):
+        identity = Cropping2D(cropping=((2,2),(2,2)))(x)  
+        
         a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(x)
         a = BatchNormalization(mode=1)(a)
         a = Activation('relu')(a)
         a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(a)
         y = BatchNormalization(mode=1)(a)
-        
-        shortcut = _shortcut(x)
-        
-        return merge([shortcut, y], mode='sum')
+
+        return  merge([identity, y], mode='sum')
     
     return _res_func    
 
