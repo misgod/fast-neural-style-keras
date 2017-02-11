@@ -1,13 +1,7 @@
 from keras import backend as K
 from keras.regularizers import Regularizer
 
-dummy_loss_val = K.variable(0.0)
 
-
-# Dummy loss function which simply returns 0
-# This is because we will be training the network using regularizers.
-def dummy_loss(y_true, y_pred):
-    return dummy_loss_val
 
 
 def gram_matrix(x):
@@ -64,8 +58,8 @@ class FeatureReconstructionRegularizer(Regularizer):
             channels = shape[-1]
         size = shape[1]
 
-        print size, channels
-        loss = self.weight * K.mean(K.sum(K.square(content - generated))) / (channels * size * size)
+
+        loss = self.weight * K.mean(K.sum(K.square(content - generated))) /  K.cast((channels * size * size), dtype='float32')
         
         
         
