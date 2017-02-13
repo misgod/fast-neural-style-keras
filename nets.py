@@ -1,6 +1,6 @@
 from keras.layers import Input, merge
 from keras.models import Model,Sequential
-from layers import VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_relu
+from layers import VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_nolinear
 from loss import StyleReconstructionRegularizer,FeatureReconstructionRegularizer,TVRegularizer
 from keras import backend as K
 from VGG16 import vgg16
@@ -12,7 +12,8 @@ style_weight=5.
 content_weight=1.
 tv_weight=1e-4
 style_image_path = "images/style/starry_night.jpg"
-
+img_width=256
+img_height=256
 
 def image_transform_net():
     x = Input(shape=(256,256,3))
@@ -22,9 +23,9 @@ def image_transform_net():
     a = conv_bn_relu(128, 3, 3, stride=(2,2))(a)
     for i in range(5):
         a = res_conv(128,3,3)(a)
-    a = dconv_bn_relu(64,3,3)(a)
-    a = dconv_bn_relu(32,3,3)(a)
-    a = dconv_bn_relu(3,9,9,stride=(1,1))(a)
+    a = dconv_bn_nolinear(64,3,3,output_shape=(1,128,128,64))(a)
+    a = dconv_bn_nolinear(32,3,3,output_shape=(1,256,256,32))(a)
+    a = dconv_bn_nolinear(3,9,9,stride=(1,1),activation="tanh",output_shape=(1,256,256,3))(a)
     # Scale output to range [0, 255] via custom Denormalize layer
     y = Denormalize(name='transform_output')(a)
     
@@ -34,6 +35,28 @@ def image_transform_net():
 
 
 
+
+def loss_net(x_in, trux_x_in):
+    # Append the initial input to the FastNet input to the VGG inputs
+    x = merge([x_in, trux_x_in], mode='concat', concat_axis=0)
+
+    # Normalize the inputs via custom VGG Normalization layer
+    x = VGGNormalize(name="vgg_normalize")(x)
+
+    vgg = vgg16(include_top=False,input_tensor=x)
+
+    vgg_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers[-18:]])
+    vgg_layers = dict([(layer.name, layer) for layer in vgg.layers[-18:]])
+    
+    #add_style_loss(vgg,style_image_path , vgg_layers, vgg_output_dict)    
+    add_content_loss(vgg_layers,vgg_output_dict)    
+    
+    # Freeze all VGG layers
+    for layer in vgg.layers[-19:]:
+        layer.trainable = False
+
+    return vgg
+    
 
 
 def add_style_loss(vgg,style_image_path,vgg_layers,vgg_output_dict): 
@@ -76,29 +99,6 @@ def add_content_loss(vgg_layers,vgg_output_dict):
 def add_total_variation_loss(transform_output_layer):
     # Total Variation Regularization
     layer = transform_output_layer  # Output layer
-    tv_regularizer = TVRegularizer(img_width=img_width, img_height=img_height,
-                                   weight=tv_weight)(layer)
+    tv_regularizer = TVRegularizer(weight=tv_weight)(layer)
     layer.add_loss(tv_regularizer)    
 
-
-def loss_net(x_in, trux_x_in):
-    # Append the initial input to the FastNet input to the VGG inputs
-    x = merge([x_in, trux_x_in], mode='concat', concat_axis=0)
-
-    # Normalize the inputs via custom VGG Normalization layer
-    x = VGGNormalize(name="vgg_normalize")(x)
-
-    vgg = vgg16(include_top=False,input_tensor=x)
-
-    vgg_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers[-18:]])
-    vgg_layers = dict([(layer.name, layer) for layer in vgg.layers[-18:]])
-    
-    add_style_loss(vgg,style_image_path , vgg_layers, vgg_output_dict)    
-    add_content_loss(vgg_layers,vgg_output_dict)    
-    
-    # Freeze all VGG layers
-    for layer in vgg.layers[-19:]:
-        layer.trainable = False
-
-    return vgg
-    

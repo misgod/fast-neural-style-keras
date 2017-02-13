@@ -11,12 +11,13 @@ import numpy as np
 import tensorflow as tf
 
 
+bn_mode = 1
 
 
 def conv_bn_relu(nb_filter, nb_row, nb_col,stride):   
     def conv_func(x):
         x = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride,border_mode='same')(x)
-        x = BatchNormalization(mode=1)(x)
+        x = BatchNormalization(mode=bn_mode)(x)
         x = Activation('relu')(x)
         return x
     return conv_func    
@@ -29,24 +30,26 @@ def res_conv(nb_filter, nb_row, nb_col,stride=(1,1)):
         identity = Cropping2D(cropping=((2,2),(2,2)))(x)  
         
         a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(x)
-        a = BatchNormalization(mode=1)(a)
+        a = BatchNormalization(mode=bn_mode)(a)
         a = Activation('relu')(a)
         a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(a)
-        y = BatchNormalization(mode=1)(a)
+        y = BatchNormalization(mode=bn_mode)(a)
 
         return  merge([identity, y], mode='sum')
     
     return _res_func    
 
     
-def dconv_bn_relu(nb_filter, nb_row, nb_col,stride=(2,2)):   
-    def dconv_bn_relu(x):
+def dconv_bn_nolinear(nb_filter, nb_row, nb_col,output_shape,stride=(2,2),activation="relu"):   
+    def _dconv_bn(x):
         #TODO: Deconvolution2D
-        x = UpSampling2D(size=stride)(x)
-        x = Convolution2D(nb_filter,nb_row, nb_col, border_mode='same')(x)
-        x = Activation('relu')(x)
+        x = Deconvolution2D(nb_filter,nb_row, nb_col, output_shape=output_shape, subsample=stride, border_mode='same')(x)
+        x = BatchNormalization(mode=bn_mode)(x)
+        x = Activation(activation)(x)
         return x
-    return dconv_bn_relu        
+    return _dconv_bn        
+  
+
 
 
 class Denormalize(Layer):
