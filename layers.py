@@ -14,6 +14,26 @@ import tensorflow as tf
 bn_mode = 1
 
 
+class InputNormalize(Layer):
+    def __init__(self, **kwargs):
+        super(InputNormalize, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        pass
+
+    def call(self, x, mask=None):
+        # No exact substitute for set_subtensor in tensorflow
+        # So we subtract an approximate value
+        # x = preprocess_input(x)
+        x /= 255.
+       
+        return x
+   
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape
+    
+
 def conv_bn_relu(nb_filter, nb_row, nb_col,stride):   
     def conv_func(x):
         x = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride,border_mode='same')(x)

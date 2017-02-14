@@ -1,6 +1,6 @@
 from keras.layers import Input, merge
 from keras.models import Model,Sequential
-from layers import VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_nolinear
+from layers import InputNormalize,VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_nolinear
 from loss import StyleReconstructionRegularizer,FeatureReconstructionRegularizer,TVRegularizer
 from keras import backend as K
 from VGG16 import vgg16
@@ -17,7 +17,8 @@ img_height=256
 
 def image_transform_net():
     x = Input(shape=(256,256,3))
-    a = ReflectionPadding2D(padding=(40,40),input_shape=(256,256,3))(x)
+    a = InputNormalize()(x)
+    a = ReflectionPadding2D(padding=(40,40),input_shape=(256,256,3))(a)
     a = conv_bn_relu(32, 9, 9, stride=(1,1))(a)
     a = conv_bn_relu(64, 9, 9, stride=(2,2))(a)
     a = conv_bn_relu(128, 3, 3, stride=(2,2))(a)
