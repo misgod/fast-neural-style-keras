@@ -57,12 +57,12 @@ def preprocess_image(image_path, img_width=256, img_height=256, load_dims=False,
     img = np.expand_dims(img, axis=0)
     return img
 
-def deprocess_image(x):
+def deprocess_image(x,img_width=256, img_height=256):
     if K.image_dim_ordering() == 'th':
         x = x.reshape((3, img_nrows, img_ncols))
         x = x.transpose((1, 2, 0))
     else:
-        x = x.reshape((img_nrows, img_ncols, 3))
+        x = x.reshape((img_width, img_height, 3))
     # Remove zero-center by mean pixel
     x[:, :, 0] += 103.939
     x[:, :, 1] += 116.779

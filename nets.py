@@ -30,7 +30,7 @@ def image_transform_net():
     y = Denormalize(name='transform_output')(a)
     
     model = Model(input=x, output=y)
-    add_total_variation_loss(model.layers[-1])
+    #add_total_variation_loss(model.layers[-1])
     return model 
 
 
