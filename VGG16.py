@@ -10,7 +10,7 @@ import warnings
 
 from keras.models import Model
 from keras.layers import Flatten, Dense, Input
-from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers import Convolution2D, MaxPooling2D,AveragePooling2D
 from keras.engine.topology import get_source_inputs
 from keras.utils.layer_utils import convert_all_kernels_in_model
 from keras.utils.data_utils import get_file
@@ -85,30 +85,30 @@ def vgg16(include_top=True, weights='imagenet',
     # Block 1
     x = Convolution2D(64, 3, 3, activation='relu', border_mode='same', name='block1_conv1')(img_input)
     x = Convolution2D(64, 3, 3, activation='relu', border_mode='same', name='block1_conv2')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
+    x = AveragePooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
 
     # Block 2
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same', name='block2_conv1')(x)
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same', name='block2_conv2')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+    x = AveragePooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
 
     # Block 3
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv1')(x)
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv2')(x)
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv3')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+    x = AveragePooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
     # Block 4
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv1')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv2')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv3')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+    x = AveragePooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
 
     # Block 5
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv1')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv2')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv3')(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+    x = AveragePooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
 
     if include_top:
         # Classification block
@@ -157,16 +157,9 @@ def vgg16(include_top=True, weights='imagenet',
                 weights_path = get_file('vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
                                         TF_WEIGHTS_PATH_NO_TOP,
                                         cache_subdir='models')
-            #model.load_weights(weights_path)
+            model.load_weights(weights_path,by_name=True)
             
-            f = h5py.File(weights_path)
 
-            layer_names = [name for name in f.attrs['layer_names']]
-
-            for i, layer in enumerate(model.layers[-18:]):
-                g = f[layer_names[i]]
-                weights = [g[name] for name in g.attrs['weight_names']]
-                layer.set_weights(weights)
             print('VGG Model weights loaded.')    
 
             
