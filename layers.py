@@ -71,8 +71,8 @@ def dconv_bn_nolinear(nb_filter, nb_row, nb_col,stride=(2,2),activation="relu"):
         #x = Deconvolution2D(nb_filter,nb_row, nb_col, output_shape=output_shape, subsample=stride, border_mode='same')(x)
         #x = UpSampling2D(size=stride)(x)
         x = UnPooling2D(size=stride)(x)
-        x = ReflectionPadding2D(padding=stride)(x)
-        x = Convolution2D(nb_filter, nb_row, nb_col,border_mode='valid')(x)
+        #x = ReflectionPadding2D(padding=stride)(x)
+        x = Convolution2D(nb_filter, nb_row, nb_col,border_mode='same')(x)
         
         x = BatchNormalization(mode=bn_mode,axis=3)(x)
         x = Activation(activation)(x)

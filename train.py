@@ -64,6 +64,7 @@ def main(args):
 
     # model.load_weights(style+'_weights.h5',by_name=False)
 
+    skip_to = 61400
 
     i=0
     t1 = time.time()
@@ -71,6 +72,13 @@ def main(args):
         target_size=(img_width, img_height), shuffle=False):    
         if i > nb_epoch:
             break
+
+        if i < skip_to:
+            i+=1
+            if i % 1000 ==0:
+                print("skip to: %d" % i)
+
+            continue
 
         hist = model.train_on_batch(x, dummy_y)
 

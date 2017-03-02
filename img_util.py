@@ -6,7 +6,8 @@ import os
 
 from keras import backend as K
 from keras.preprocessing import image
-import numpy as np
+
+
 
 def preprocess_image1(image_path,img_nrows,img_ncols):
     img = image.load_img(image_path, target_size=(img_nrows, img_ncols))
@@ -47,11 +48,12 @@ def preprocess_image(image_path, img_width=256, img_height=256, load_dims=False,
         if img_width < 0 or img_height < 0: # We have already loaded image dims
             img_width = (img_WIDTH // size_multiple) * size_multiple # Make sure width is a multiple of 4
             img_height = (img_HEIGHT // size_multiple) * size_multiple # Make sure width is a multiple of 4
-        img = imresize(img, (img_width, img_height))
+        img = imresize(img, (img_width, img_height),interp='nearest')
 
     if K.image_dim_ordering() == "th":
         img = img.transpose((2, 0, 1)).astype(np.float32)
     else:
+
         img = img.astype(np.float32)
 
     img = np.expand_dims(img, axis=0)
