@@ -1,11 +1,11 @@
 from keras import backend as K
 from keras.engine.topology import Layer
-from keras.layers import merge
+from keras.layers.merge import add
 from keras.engine import InputSpec
 from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
-from keras.layers.convolutional import Deconvolution2D, Convolution2D,UpSampling2D,Cropping2D
-from VGG16 import vgg16
+from keras.layers.convolutional import Deconvolution2D,  Conv2D,UpSampling2D,Cropping2D
+from VGG16 import VGG16
 from keras.applications.vgg16 import preprocess_input
 from keras.layers.advanced_activations import LeakyReLU
 from keras.applications.imagenet_utils import  preprocess_input
@@ -13,8 +13,6 @@ from keras.applications.imagenet_utils import  preprocess_input
 import numpy as np
 import tensorflow as tf
 
-
-bn_mode = 2
 
 
 class InputNormalize(Layer):
@@ -24,61 +22,60 @@ class InputNormalize(Layer):
     def build(self, input_shape):
         pass
 
+    def compute_output_shape(self,input_shape):
+        return input_shape
+
     def call(self, x, mask=None):
         # No exact substitute for set_subtensor in tensorflow
         # So we subtract an approximate value
         # x = preprocess_input(x)
-        x /= 255.
-       
-        return x
-   
+        x = (x - 127.5)/ 127.5
 
-    def get_output_shape_for(self, input_shape):
-        return input_shape
-    
+        return x
+
+
 
 def conv_bn_relu(nb_filter, nb_row, nb_col,stride):   
     def conv_func(x):
-        x = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride,border_mode='same')(x)
-        x = BatchNormalization(mode=bn_mode,axis=3)(x)
+        x = Conv2D(nb_filter, (nb_row, nb_col), strides=stride,padding='same')(x)
+        x = BatchNormalization()(x)
         #x = LeakyReLU(0.2)(x)
         x = Activation("relu")(x)
         return x
-    return conv_func    
+    return conv_func
 
 
 
 #https://keunwoochoi.wordpress.com/2016/03/09/residual-networks-implementation-on-keras/
-def res_conv(nb_filter, nb_row, nb_col,stride=(1,1)):   
+def res_conv(nb_filter, nb_row, nb_col,stride=(1,1)):
     def _res_func(x):
-        identity = Cropping2D(cropping=((2,2),(2,2)))(x)  
-        
-        a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(x)
-        a = BatchNormalization(mode=bn_mode,axis=3)(a)
+        identity = Cropping2D(cropping=((2,2),(2,2)))(x)
+
+        a = Conv2D(nb_filter, (nb_row, nb_col), strides=stride, padding='valid')(x)
+        a = BatchNormalization()(a)
         #a = LeakyReLU(0.2)(a)
         a = Activation("relu")(a)
-        a = Convolution2D(nb_filter, nb_row, nb_col, subsample=stride, border_mode='valid')(a)
-        y = BatchNormalization(mode=bn_mode,axis=3)(a)
+        a = Conv2D(nb_filter, (nb_row, nb_col), strides=stride, padding='valid')(a)
+        y = BatchNormalization()(a)
 
-        return  merge([identity, y], mode='sum')
-    
-    return _res_func    
+        return  add([identity, y])
 
-    
-def dconv_bn_nolinear(nb_filter, nb_row, nb_col,stride=(2,2),activation="relu"):   
+    return _res_func
+
+
+def dconv_bn_nolinear(nb_filter, nb_row, nb_col,stride=(2,2),activation="relu"):
     def _dconv_bn(x):
         #TODO: Deconvolution2D
         #x = Deconvolution2D(nb_filter,nb_row, nb_col, output_shape=output_shape, subsample=stride, border_mode='same')(x)
         #x = UpSampling2D(size=stride)(x)
         x = UnPooling2D(size=stride)(x)
-        #x = ReflectionPadding2D(padding=stride)(x)
-        x = Convolution2D(nb_filter, nb_row, nb_col,border_mode='same')(x)
-        
-        x = BatchNormalization(mode=bn_mode,axis=3)(x)
+        x = ReflectionPadding2D(padding=stride)(x)
+        x = Conv2D(nb_filter, (nb_row, nb_col), padding='valid')(x)
+        x = BatchNormalization()(x)
         x = Activation(activation)(x)
         return x
-    return _dconv_bn        
-  
+    return _dconv_bn
+
 
 
 
@@ -103,7 +100,7 @@ class Denormalize(Layer):
 
         return (x + 1) * 127.5
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self,input_shape):
         return input_shape
 
 
@@ -130,7 +127,7 @@ class VGGNormalize(Layer):
         return x
    
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self,input_shape):
         return input_shape
 
 
@@ -139,7 +136,7 @@ class VGGNormalize(Layer):
 class ReflectionPadding2D(Layer):
     def __init__(self, padding=(1, 1), dim_ordering='default', **kwargs):
         super(ReflectionPadding2D, self).__init__(**kwargs)
-        
+
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 
@@ -189,7 +186,7 @@ class ReflectionPadding2D(Layer):
         
         return tf.pad(x,paddings, mode='REFLECT', name=None)
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self,input_shape):
         if self.dim_ordering == 'tf':
             rows = input_shape[1] + self.top_pad + self.bottom_pad if input_shape[1] is not None else None
             cols = input_shape[2] + self.left_pad + self.right_pad if input_shape[2] is not None else None

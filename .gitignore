@@ -1,0 +1,6 @@
+*.pyc
+*.h5
+*.png
+*.jpg
+images/output
+images/train

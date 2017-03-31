@@ -3,7 +3,7 @@ from sklearn.feature_extraction.image import reconstruct_from_patches_2d, extrac
 from PIL import Image
 import numpy as np
 import os
-
+import tensorflow as tf
 from keras import backend as K
 from keras.preprocessing import image
 
@@ -58,6 +58,90 @@ def preprocess_image(image_path, img_width=256, img_height=256, load_dims=False,
 
     img = np.expand_dims(img, axis=0)
     return img
+
+
+
+def preprocess_image_for_generating(image_path, size_multiple=4):
+    img = imread(image_path, mode="RGB")  # Prevents crashes due to PNG images (ARGB)
+    org_w = img.shape[0]
+    org_h = img.shape[1]
+
+    aspect_ratio = org_h/org_w
+
+    size  = org_w if org_w > org_h else org_h
+
+    pad_w = (size - org_w) // 2
+    pad_h = (size - org_h) // 2
+
+    tf_session = K.get_session()
+    kvar = K.variable(value=img)
+
+    paddings = [[pad_w,pad_w],[pad_h,pad_h],[0,0]]
+    squared_img = tf.pad(kvar,paddings, mode='REFLECT', name=None)
+    img = K.eval(squared_img)
+
+    
+    img_width = (squared_img.shape[1] // size_multiple) * size_multiple # Make sure width is a multiple of 4
+    img_height = (squared_img.shape[0] // size_multiple) * size_multiple # Make sure width is a multiple of 4
+
+    img = imresize(img, (img_width, img_height),interp='nearest')
+
+    if K.image_dim_ordering() == "Th":
+        img = img.transpose((2, 0, 1)).astype(np.float32)
+    else:
+
+        img = img.astype(np.float32)
+
+    img = np.expand_dims(img, axis=0)
+    return ((org_w,org_h), (img_width.value,img_height.value),img)
+
+
+
+
+
+def preprocess_reflect_image(image_path, size_multiple=4):
+    img = imread(image_path, mode="RGB")  # Prevents crashes due to PNG images (ARGB)
+    org_w = img.shape[0]
+    org_h = img.shape[1]
+
+    aspect_ratio = org_h/org_w
+    
+    sw = (org_w // size_multiple) * size_multiple # Make sure width is a multiple of 4
+    sh = (org_h // size_multiple) * size_multiple # Make sure width is a multiple of 4
+
+
+    size  = sw if sw > sh else sh
+
+    pad_w = (size - sw) // 2
+    pad_h = (size - sh) // 2
+
+    tf_session = K.get_session()
+    kvar = K.variable(value=img)
+
+    paddings = [[pad_w,pad_w],[pad_h,pad_h],[0,0]]
+    squared_img = tf.pad(kvar,paddings, mode='REFLECT', name=None)
+    img = K.eval(squared_img)
+
+    
+    img = imresize(img, (size, size),interp='nearest')
+    img = img.astype(np.float32)
+
+    img = np.expand_dims(img, axis=0)
+    return (aspect_ratio  ,img)
+
+
+def crop_image(img, aspect_ratio):
+    if aspect_ratio >1:
+        w = img.shape[0]
+        h = int(w // aspect_ratio)
+        img =  K.eval(tf.image.crop_to_bounding_box(img, (w-h)//2,0,h,w))
+    else:
+        h = img.shape[1]
+        w = int(h // aspect_ratio)
+        img = K.eval(tf.image.crop_to_bounding_box(img, 0,(h-w)//2,h,w))
+    return img
+
+
 
 def deprocess_image(x,img_width=256, img_height=256):
     if K.image_dim_ordering() == 'th':

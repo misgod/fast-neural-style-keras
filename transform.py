@@ -7,95 +7,80 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras import backend as K
 from scipy.misc import imsave
 import time
-import numpy as np
+import numpy as np 
 import argparse
 import h5py
+import tensorflow as tf
 
 from skimage import color, exposure, transform
 from scipy import ndimage
 from scipy.ndimage.filters import median_filter
-from img_util import preprocess_image
+from img_util import preprocess_image, preprocess_image_for_generating, preprocess_reflect_image, crop_image
 
 import nets
 
 
 # from 6o6o's fork. https://github.com/6o6o/chainer-fast-neuralstyle/blob/master/generate.py
-def original_colors(original, stylized):
+def original_colors(original, stylized,original_color):
     # Histogram normalization in v channel
-    ratio=0.9
+    ratio=1. - original_color 
 
     hsv = color.rgb2hsv(original/255)
     hsv_s = color.rgb2hsv(stylized/255)
 
-    hsv[:,:,0] = (ratio* hsv_s[:,:,0]) + (1-ratio)*hsv [:,:,0]
-    hsv[:,:,2] = (ratio* hsv_s[:,:,2]) + (1-ratio)*hsv [:,:,2]
-    img = color.hsv2rgb(hsv)    
+    hsv_s[:,:,2] = (ratio* hsv_s[:,:,2]) + (1-ratio)*hsv [:,:,2]
+    img = color.hsv2rgb(hsv_s)    
     return img
 
 
 def load_weights(model,file_path):
     f = h5py.File(file_path)
 
-    #print [f[x].attrs for x in f.attrs['layer_names']]
-    
-
     layer_names = [name for name in f.attrs['layer_names']]
 
     for i, layer in enumerate(model.layers[:31]):
         g = f[layer_names[i]]
         weights = [g[name] for name in g.attrs['weight_names']]
-        layer.set_weights(weights)
-
-
-    # for k in range(f.attrs['nb_layers']):
-    #     if k >= len(model.layers) - 1:
-    #         # we don't look at the last two layers in the savefile (fully-connected and activation)
-    #         break
-    #     g = f['layer_{}'.format(k)]
-    #     weights = [g['param_{}'.format(p)] for p in range(g.attrs['nb_params'])]
-    #     layer = model.layers[k]
-
-    #     layer.set_weights(weights)
+        layer.set_weigh
+        ts(weights)
 
     f.close()
     
-
-    print('Pretrained Model weights loaded.')        
+    print('Pretrained Model weights loaded.')
 
 def main(args):
-    style= "la_muse" #args.style
-    img_width = img_height =  args.image_size
+    style= args.style
+    #img_width = img_height =  args.image_size
     output_file =args.output
-    input_file = "asus-zenbo-christmas.jpg" #args.input
+    input_file = args.input
+    original_color = args.original_color
 
-        
+    aspect_ratio, x = preprocess_reflect_image(input_file, size_multiple=4)
+
+    img_width= img_height = x.shape[1]
     net = nets.image_transform_net(img_width,img_height)
     model = nets.loss_net(net.output,net.input,img_width,img_height,"",0,0)
- 
-    model.summary()
+
+    #model.summary()
 
     model.compile(Adam(),  dummy_loss)  # Dummy loss since we are learning from regularizes
 
     model.load_weights("pretrained/"+style+'_weights.h5',by_name=False)
+
     
-    #load_weights(model, "pretrained/" + (style+'_weights.h5'))
-
-    x = preprocess_image(input_file,img_width,img_height)
-
     t1 = time.time()
-    y = net.predict(x)[0]
+    y = net.predict(x)[0] 
+    y = crop_image(y, aspect_ratio)
+
     print("process: %s" % (time.time() -t1))
 
-    imsave('%s_%s.png' % (output_file,"org"), y)
- 
-    imsave('%s_%s.png' % (output_file,"filter"), median_filter(y,5))
+
+    if original_color == 0:
+        imsave('%s_output.png' % output_file, y)
+    else:
+        imsave('%s_output.png' % output_file,  original_colors(crop_image(x[0], aspect_ratio),y,original_color ))
 
 
-    imsave('%s_%s.png' % (output_file,"color"), original_colors(x[0],median_filter(y,3)))
-
-    
-
-         
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Real-time style transfer')
@@ -109,6 +94,8 @@ if __name__ == "__main__":
     parser.add_argument('--output', '-o', default=None, required=True,type=str,
                         help='output file name without extension')
 
+    parser.add_argument('--original_color', '-c', default=0, type=float,
+                        help='0~1 for original color')
     parser.add_argument('--image_size', default=256, type=int)
 
     args = parser.parse_args()

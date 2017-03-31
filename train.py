@@ -62,9 +62,9 @@ def main(args):
 
  
 
-    # model.load_weights(style+'_weights.h5',by_name=False)
+    #model.load_weights(style+'_weights.h5',by_name=False)
 
-    skip_to = 61400
+    skip_to = 0
 
     i=0
     t1 = time.time()
@@ -83,7 +83,7 @@ def main(args):
         hist = model.train_on_batch(x, dummy_y)
 
         if i % 50 == 0:
-            print  hist,(time.time() -t1)
+            print(hist,(time.time() -t1))
             t1 = time.time()
 
         if i % 200 == 0:

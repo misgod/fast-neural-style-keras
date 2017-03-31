@@ -1,9 +1,10 @@
-from keras.layers import Input, merge
+from keras.layers import Input
+from keras.layers.merge import concatenate
 from keras.models import Model,Sequential
 from layers import InputNormalize,VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_nolinear
 from loss import StyleReconstructionRegularizer,FeatureReconstructionRegularizer,TVRegularizer
 from keras import backend as K
-from VGG16 import vgg16
+from VGG16 import VGG16
 import img_util
 
 
@@ -25,7 +26,7 @@ def image_transform_net(img_width,img_height,tv_weight=1):
     # Scale output to range [0, 255] via custom Denormalize layer
     y = Denormalize(name='transform_output')(a)
     
-    model = Model(input=x, output=y)
+    model = Model(inputs=x, outputs=y)
     
     if tv_weight > 0:
         add_total_variation_loss(model.layers[-1],tv_weight)
@@ -37,12 +38,12 @@ def image_transform_net(img_width,img_height,tv_weight=1):
 
 def loss_net(x_in, trux_x_in,width, height,style_image_path,content_weight,style_weight):
     # Append the initial input to the FastNet input to the VGG inputs
-    x = merge([x_in, trux_x_in], mode='concat', concat_axis=0)
+    x = concatenate([x_in, trux_x_in], axis=0)
     
     # Normalize the inputs via custom VGG Normalization layer
     x = VGGNormalize(name="vgg_normalize")(x)
 
-    vgg = vgg16(include_top=False,input_tensor=x)
+    vgg = VGG16(include_top=False,input_tensor=x)
 
     vgg_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers[-18:]])
     vgg_layers = dict([(layer.name, layer) for layer in vgg.layers[-18:]])
