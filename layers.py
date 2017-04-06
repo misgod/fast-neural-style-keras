@@ -26,12 +26,8 @@ class InputNormalize(Layer):
         return input_shape
 
     def call(self, x, mask=None):
-        # No exact substitute for set_subtensor in tensorflow
-        # So we subtract an approximate value
-        # x = preprocess_input(x)
-        x = (x - 127.5)/ 127.5
-
-        return x
+        #x = (x - 127.5)/ 127.5
+        return x/255.
 
 
 

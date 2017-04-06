@@ -2,7 +2,7 @@ from keras.layers import Input, merge
 from keras.models import Model,Sequential
 from layers import VGGNormalize,ReflectionPadding2D,Denormalize,conv_bn_relu,res_conv,dconv_bn_nolinear
 from loss import dummy_loss,StyleReconstructionRegularizer,FeatureReconstructionRegularizer,TVRegularizer
-from keras.optimizers import Adam, SGD,Nadam,Adadelta
+from keras.optimizers import Adam, SGD,RMSprop
 from keras.preprocessing.image import ImageDataGenerator
 from keras import backend as K
 from scipy.misc import imsave
@@ -39,7 +39,7 @@ def main(args):
     tv_weight= args.tv_weight
     style= args.style
     img_width = img_height =  args.image_size
-         
+
     style_image_path = get_style_img_path(style)
 
     net = nets.image_transform_net(img_width,img_height,tv_weight)
@@ -106,7 +106,7 @@ if __name__ == "__main__":
           
     parser.add_argument('--output', '-o', default=None, type=str,
                         help='output model file path without extension')
-    parser.add_argument('--tv_weight', default=1e-6, type=float,
+    parser.add_argument('--tv_weight', default=1e-4, type=float,
                         help='weight of total variation regularization according to the paper to be set between 10e-4 and 10e-6.')
     parser.add_argument('--content_weight', default=1.0, type=float)
     parser.add_argument('--style_weight', default=8.0, type=float)
