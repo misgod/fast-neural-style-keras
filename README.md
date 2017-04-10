@@ -4,7 +4,8 @@ This is a fast neural style transfer implement with Keras 2(Tensorflow backend).
 
 
 ## Some Examples
+<img src="images/content/101.jpg" width="50%"><img src="images/content/tubingen.jpg" width="50%">
 <img src="images/generated/des_glaneuses_101_output.png" width="50%"><img src="images/generated/des_glaneuses_tubingen_output.png" width="50%">
-<img src="images/generated/la_muse_tubingen_output.png" width="50%"><img src="images/generated/starry_output.png" width="50%">
+<img src="images/generated/starry_output.png" width="50%"><img src="images/generated/la_muse_tubingen_output.png" width="50%">
 <img src="images/generated/wave_crop_output.png">
  
