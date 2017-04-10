@@ -74,11 +74,12 @@ def main(args):
             break
 
         if i < skip_to:
-            i+=1
+            i+=train_batchsize
             if i % 1000 ==0:
                 print("skip to: %d" % i)
 
             continue
+
 
         hist = model.train_on_batch(x, dummy_y)
 
@@ -86,7 +87,7 @@ def main(args):
             print(hist,(time.time() -t1))
             t1 = time.time()
 
-        if i % 200 == 0:
+        if i % 500 == 0:
             print("epoc: ", i)
             val_x = net.predict(x)
 
@@ -94,7 +95,7 @@ def main(args):
             display_img(i, val_x[0],style, True)
             model.save_weights(style+'_weights.h5')
 
-        i+=1
+        i+=train_batchsize
 
 
 
@@ -106,10 +107,10 @@ if __name__ == "__main__":
           
     parser.add_argument('--output', '-o', default=None, type=str,
                         help='output model file path without extension')
-    parser.add_argument('--tv_weight', default=1e-4, type=float,
+    parser.add_argument('--tv_weight', default=1e-6, type=float,
                         help='weight of total variation regularization according to the paper to be set between 10e-4 and 10e-6.')
     parser.add_argument('--content_weight', default=1.0, type=float)
-    parser.add_argument('--style_weight', default=8.0, type=float)
+    parser.add_argument('--style_weight', default=4.0, type=float)
     parser.add_argument('--image_size', default=256, type=int)
 
     args = parser.parse_args()

@@ -14,6 +14,7 @@ def gram_matrix(x):
         features = K.batch_flatten(K.permute_dimensions(x, (2, 0, 1)))
 
     shape = K.shape(x)
+    
     C, W, H = (shape[0],shape[1], shape[2])
     
     cf = K.reshape(features ,(C,-1))

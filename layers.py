@@ -31,6 +31,7 @@ class InputNormalize(Layer):
 
 
 
+
 def conv_bn_relu(nb_filter, nb_row, nb_col,stride):   
     def conv_func(x):
         x = Conv2D(nb_filter, (nb_row, nb_col), strides=stride,padding='same')(x)
@@ -212,3 +213,17 @@ class UnPooling2D(UpSampling2D):
         return tf.image.resize_nearest_neighbor(x, (w,h))
 
         
+
+class InstanceNormalize(Layer):
+    def __init__(self, **kwargs):
+        super(InstanceNormalize, self).__init__(**kwargs)
+        self.epsilon = 1e-3
+            
+
+    def call(self, x, mask=None):
+        mean, var = tf.nn.moments(x, [1, 2], keep_dims=True)
+        return tf.div(tf.subtract(x, mean), tf.sqrt(tf.add(var, self.epsilon)))
+
+                                                 
+    def compute_output_shape(self,input_shape):
+        return input_shape
