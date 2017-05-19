@@ -32,6 +32,23 @@ def original_colors(original, stylized,original_color):
     img = color.hsv2rgb(hsv_s)    
     return img
 
+def blend(original, stylized, alpha):
+    return alpha * original + (1 - alpha) * stylized
+
+
+
+def median_filter_all_colours(im_small, window_size):
+    """
+    Applies a median filer to all colour channels
+    """
+    ims = []
+    for d in range(3):
+        im_conv_d = median_filter(im_small[:,:,d], size=(window_size,window_size))
+        ims.append(im_conv_d)
+
+    im_conv = np.stack(ims, axis=2).astype("uint8")
+    
+    return im_conv
 
 def load_weights(model,file_path):
     f = h5py.File(file_path)
@@ -54,6 +71,8 @@ def main(args):
     output_file =args.output
     input_file = args.input
     original_color = args.original_color
+    blend_alpha = args.blend
+    media_filter = args.media_filter
 
     aspect_ratio, x = preprocess_reflect_image(input_file, size_multiple=4)
 
@@ -74,12 +93,20 @@ def main(args):
 
     print("process: %s" % (time.time() -t1))
 
+    ox = crop_image(x[0], aspect_ratio)
 
-    if original_color == 0:
-        imsave('%s_output.png' % output_file, y)
-    else:
-        imsave('%s_output.png' % output_file,  original_colors(crop_image(x[0], aspect_ratio),y,original_color ))
+    y =  median_filter_all_colours(y, media_filter)
 
+    if blend_alpha > 0:
+        y = blend(ox,y,blend_alpha)
+
+
+    if original_color > 0:
+        y = original_colors(ox,y,original_color )
+
+    imsave('%s_output.png' % output_file, y)
+        
+ 
 
 
 if __name__ == "__main__":
@@ -96,6 +123,12 @@ if __name__ == "__main__":
 
     parser.add_argument('--original_color', '-c', default=0, type=float,
                         help='0~1 for original color')
+
+    parser.add_argument('--blend', '-b', default=0, type=float,
+                        help='0~1 for blend with original image')
+
+    parser.add_argument('--media_filter', '-f', default=3, type=int,
+                        help='media_filter size')
     parser.add_argument('--image_size', default=256, type=int)
 
     args = parser.parse_args()
