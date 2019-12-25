@@ -67,7 +67,6 @@ def load_weights(model,file_path):
 
 def main(args):
     style= args.style
-    #img_width = img_height =  args.image_size
     output_file =args.output
     input_file = args.input
     original_color = args.original_color
@@ -129,7 +128,6 @@ if __name__ == "__main__":
 
     parser.add_argument('--media_filter', '-f', default=3, type=int,
                         help='media_filter size')
-    parser.add_argument('--image_size', default=256, type=int)
 
     args = parser.parse_args()
     main(args)
